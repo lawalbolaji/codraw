@@ -1,7 +1,7 @@
 {
     "name": "codraw",
     "version": "0.0.1",
-    "description": "",
+    "description": "codraw monorepo",
     "main": "index.js",
     "workspaces": [
         "./client",
