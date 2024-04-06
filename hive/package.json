@@ -6,6 +6,10 @@
     "main": "index.js",
     "type": "module",
     "scripts": {
+        "start:dev": "export DOTENV_CONFIG_PATH=./.env && tsc-watch --onSuccess \"node -r dotenv/config ./dist/index.js\"",
+        "start:debug": "export DEBUG=* && npm run start:dev",
+        "start:prod": "export NODE_ENV=PRODUCTION && npm run build && node --unhandled-rejections=strict ./dist/index.js",
+        "build": "tsc --build",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "keywords": [],
@@ -13,10 +17,17 @@
     "license": "ISC",
     "dependencies": {
         "@socket.io/cluster-adapter": "^0.2.2",
-        "ejs": "^3.1.9",
         "express": "^4.18.3",
-        "socket.io": "^4.7.4",
-        "sqlite": "^5.1.1",
-        "sqlite3": "^5.1.7"
+        "socket.io": "^4.7.4"
+    },
+    "devDependencies": {
+        "@codraw/hive": "^0.0.1",
+        "@types/express": "^4.17.21",
+        "@typescript-eslint/eslint-plugin": "^7.5.0",
+        "@typescript-eslint/parser": "^7.5.0",
+        "dotenv": "^16.4.5",
+        "eslint": "^8.57.0",
+        "tsc-watch": "^6.2.0",
+        "typescript": "^5.4.4"
     }
 }

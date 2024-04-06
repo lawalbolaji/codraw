@@ -1,6 +1,7 @@
 import { Server } from "socket.io";
 import { createServer } from "node:http";
 import express from "express";
+import type { Request, Response } from "express";
 
 const app = express();
 const server = createServer(app);
@@ -10,41 +11,45 @@ const io = new Server(server, {
     },
 });
 const port = 8000;
-const roomMeta = {}; /* {roomId: {dateCreated, etc.}} */
-const socketRoomMap = {}; /* {socketId: [roomId]} */
+type SocketId = string;
+type RoomId = number;
+const roomMeta: Record<number, { members: Array<SocketId>; createdAt: Date }> = {}; /* {roomId: {dateCreated, etc.}} */
+const socketRoomMap: Record<SocketId, Array<RoomId>> = {}; /* {socketId: [roomId]} */
 
 /* TODO: persist canvas state */
-app.post("/canvas", (req, res) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+app.post("/canvas", (req: Request, res: Response) => {
     console.log("request to save canvas state");
 });
 
 /* TODO: load canvas */
-app.get("/canvas/:canvasId", (req, res) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+app.get("/canvas/:canvasId", (req: Request, res: Response) => {
     console.log("fetching canvas state");
 });
 
-function joinRoom(roomId, socketId) {
-    if (roomMeta[roomId]) {
-        roomMeta[roomId].members.push(socketId);
+function joinRoom(room: RoomId, socket: SocketId) {
+    if (roomMeta[room]) {
+        roomMeta[room].members.push(socket);
 
-        if (!socketRoomMap[socketId]) socketRoomMap[socketId] = [];
-        socketRoomMap[socketId].push(roomId);
+        if (!socketRoomMap[socket]) socketRoomMap[socket] = [];
+        socketRoomMap[socket].push(room);
         return 1;
     }
 
     return -1;
 }
 
-function leaveRoom(socketId, roomId) {
+function leaveRoom(socket: SocketId, room: RoomId) {
     /* room exists */
-    if (roomMeta[roomId]) {
-        roomMeta[roomId].members = roomMeta[roomId].members.filter((member) => member !== socketId);
-        socketRoomMap[socketId] = socketRoomMap[socketId].filter((room) => room !== roomId);
+    if (roomMeta[room]) {
+        roomMeta[room].members = roomMeta[room].members.filter((member) => member !== socket);
+        socketRoomMap[socket] = socketRoomMap[socket].filter((room) => room !== room);
     }
 }
 
-function getRoomUsers(roomId) {
-    return roomMeta[roomId] ? roomMeta[roomId].members : [];
+function getRoomUsers(room: RoomId) {
+    return roomMeta[room] ? roomMeta[room].members : [];
 }
 
 /* TODO: add a ton of validation */
@@ -90,7 +95,7 @@ io.on("connection", (socket) => {
         /* remove user from all rooms associated with them and notify clients */
         socketRoomMap[socket.id].forEach((room) => {
             leaveRoom(socket.id, room);
-            io.to(room).emit("ROOM_USERS_CHANGED", getRoomUsers(room));
+            io.to(room + "").emit("ROOM_USERS_CHANGED", getRoomUsers(room));
         });
     });
 });
