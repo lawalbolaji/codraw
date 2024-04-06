@@ -16,6 +16,10 @@ type RoomId = number;
 const roomMeta: Record<number, { members: Array<SocketId>; createdAt: Date }> = {}; /* {roomId: {dateCreated, etc.}} */
 const socketRoomMap: Record<SocketId, Array<RoomId>> = {}; /* {socketId: [roomId]} */
 
+app.get("/", (_req: Request, res: Response) => {
+    return res.send("ok");
+});
+
 /* TODO: persist canvas state */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.post("/canvas", (req: Request, res: Response) => {

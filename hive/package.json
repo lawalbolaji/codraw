@@ -4,7 +4,6 @@
     "version": "0.0.1",
     "description": "a collaborative web server engine for codraw",
     "main": "index.js",
-    "type": "module",
     "scripts": {
         "start:dev": "export DOTENV_CONFIG_PATH=./.env && tsc-watch --onSuccess \"node -r dotenv/config ./dist/index.js\"",
         "start:debug": "export DEBUG=* && npm run start:dev",
