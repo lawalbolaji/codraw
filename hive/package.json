@@ -1,0 +1,22 @@
+{
+    "name": "@codraw/hive",
+    "private": true,
+    "version": "0.0.1",
+    "description": "a collaborative web server engine for codraw",
+    "main": "index.js",
+    "type": "module",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "@socket.io/cluster-adapter": "^0.2.2",
+        "ejs": "^3.1.9",
+        "express": "^4.18.3",
+        "socket.io": "^4.7.4",
+        "sqlite": "^5.1.1",
+        "sqlite3": "^5.1.7"
+    }
+}
