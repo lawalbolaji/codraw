@@ -7,14 +7,14 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:5173" /* get from env */,
+        origin: process.env.ClientAddress,
     },
 });
-const port = 8000;
+const port = process.env.PORT;
 type SocketId = string;
 type RoomId = number;
-const roomMeta: Record<number, { members: Array<SocketId>; createdAt: Date }> = {}; /* {roomId: {dateCreated, etc.}} */
-const socketRoomMap: Record<SocketId, Array<RoomId>> = {}; /* {socketId: [roomId]} */
+const roomMeta: Record<RoomId, { members: Array<SocketId>; createdAt: Date }> = {};
+const socketRoomMap: Record<SocketId, Array<RoomId>> = {};
 
 app.get("/", (_req: Request, res: Response) => {
     return res.send("ok");
