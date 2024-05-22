@@ -16,6 +16,7 @@
         "@emotion/styled": "^11.11.0",
         "@excalidraw/excalidraw": "^0.17.3",
         "@excalidraw/random-username": "^1.2.0",
+        "@mui/icons-material": "^5.15.18",
         "@mui/material": "^5.15.12",
         "lodash.throttle": "^4.1.1",
         "nanoid": "^5.0.6",
