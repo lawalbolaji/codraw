@@ -2,37 +2,28 @@
 import { Excalidraw, LiveCollaborationTrigger } from "@excalidraw/excalidraw";
 import { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types/types";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-    Box,
-    Button,
-    Dialog,
-    DialogContent,
-    DialogContentText,
-    DialogTitle,
-    Divider,
-    Icon,
-    IconButton,
-    InputLabel,
-    TextField,
-    Typography,
-} from "@mui/material";
+/* prettier-ignore */
+import { Box, Button, Dialog, DialogContent, DialogTitle, Divider, Icon, IconButton, InputLabel, TextField, Typography } from "@mui/material";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import DoneIcon from "@mui/icons-material/Done";
 import { getRandomUsername } from "@excalidraw/random-username";
 import collabAPI from "./lib/collab/collabAPI";
 import { APP_NAME } from "./lib/constants";
-import { getCollaborationRoomId, getCollaborationLink } from "./lib/util";
+import { getCollaborationLink as createCollabLinkFromRoomId, getCollaborationRoomId } from "./lib/util";
 
 window.EXCALIDRAW_THROTTLE_RENDER = true;
 
-/* if a collaboration session exists, based on valid roomId in the url, join session */
-const initPlayground = async (
+/* TODO: remove main options menu, see https://docs.excalidraw.com/docs/@excalidraw/excalidraw/api/children-components/main-menu*/
+
+const initCollabPlayground = async (
     excalidrawAPI: ExcalidrawImperativeAPI | null,
     setIsCollaborating: React.Dispatch<React.SetStateAction<boolean>>,
     setUsername: React.Dispatch<React.SetStateAction<string | undefined>>
 ) => {
     const roomId = getCollaborationRoomId(window.location.href);
-    console.log({roomId})
     if (!roomId || !excalidrawAPI) return;
 
+    /* TODO: show loading state */
     await collabAPI.joinCollabSession(excalidrawAPI, roomId);
     setIsCollaborating(true);
     setUsername(getRandomUsername());
@@ -45,18 +36,28 @@ const useExcalidrawAPIRef = () => {
     return { excalidrawAPI, syncExcalidrawAPI };
 };
 
+const toggleStateWithTimeout = (init: boolean, setter: (state: boolean) => void, timeout: number) => {
+    setter(init);
+
+    setTimeout(() => {
+        setter(!init);
+    }, timeout);
+};
+
 const ExcalidrawWrapper = () => {
     const { excalidrawAPI, syncExcalidrawAPI: setExcalidrawAPI } = useExcalidrawAPIRef();
     const [collabDialogOpen, setCollabDialogOpen] = useState(false);
     const [isCollaborating, setIsCollaborating] = useState(false);
     const [username, setUsername] = useState<string | undefined>();
+    const [shareLinkCopied, setShareLinkCopied] = useState(false);
     const roomLinkRef = useRef<string>();
 
     useEffect(() => {
-        if (excalidrawAPI) initPlayground(excalidrawAPI, setIsCollaborating, setUsername);
+        if (excalidrawAPI) initCollabPlayground(excalidrawAPI, setIsCollaborating, setUsername);
 
         return () => {
-            collabAPI.endCollabSession(() => setIsCollaborating(false));
+            /* clean up playground */
+            collabAPI.endCollabSession();
         };
     }, [excalidrawAPI]);
 
@@ -78,26 +79,28 @@ const ExcalidrawWrapper = () => {
                         <LiveCollaborationTrigger
                             isCollaborating={isCollaborating}
                             onSelect={async () => {
+                                /* TODO: app broke, need to warn user somehow */
                                 if (!excalidrawAPI) return;
 
+                                /* start collab session */
                                 if (!isCollaborating) {
                                     try {
                                         /* TODO: add a loading state to this button */
                                         const roomId = await collabAPI.startCollaborationSession(excalidrawAPI);
 
-                                        /* TODO: ensure this runs as a single batched op */
+                                        /* react will queue event updates until event handler exists */
                                         setUsername(getRandomUsername());
-                                        roomLinkRef.current = getCollaborationLink(roomId);
+                                        roomLinkRef.current = createCollabLinkFromRoomId(roomId);
                                         window.history.pushState({}, APP_NAME, roomLinkRef.current);
-                                        setIsCollaborating(true);
                                     } catch (error) {
                                         console.log(error);
 
-                                        /* we should allow user to retry */
-                                        setCollabDialogOpen(false); // pass the error state to this dialog
+                                        /* TODO: allow user to manually retry */
+                                        setCollabDialogOpen(false);
                                         return;
                                     }
                                 }
+
                                 setCollabDialogOpen(true);
                             }}
                         />
@@ -105,32 +108,86 @@ const ExcalidrawWrapper = () => {
                 }}
             >
                 <div className="collaboration-dialog">
-                    <Dialog open={collabDialogOpen} onClose={() => setCollabDialogOpen(false)} PaperProps={{}}>
-                        <DialogTitle sx={{ m: 0, p: 2 }}>Live Collaboration</DialogTitle>
-                        <IconButton
-                            onClick={() => setCollabDialogOpen(false)}
-                            sx={{ position: "absolute", right: 8, top: 8, color: (theme) => theme.palette.grey[500] }}
-                        >
-                            <Icon>close</Icon>
-                        </IconButton>
-                        <DialogContent>
-                            <DialogContentText>Invite people to collaborate on your drawing</DialogContentText>
-                            <Box>
-                                <InputLabel>
-                                    <TextField placeholder="username" value={username} />
-                                </InputLabel>
-                            </Box>
-                            <Box>
-                                <InputLabel htmlFor="room-link-input">link</InputLabel>
+                    <Dialog
+                        open={collabDialogOpen}
+                        onClose={() => setCollabDialogOpen(false)}
+                        PaperProps={{
+                            sx: {
+                                width: "500px",
+                            },
+                        }}
+                    >
+                        <DialogTitle sx={{ m: 0, p: 2, textAlign: "center", mt: 1 }}>Live Collaboration</DialogTitle>
+                        <DialogContent sx={{ pb: "5%" }}>
+                            <Box sx={{ margin: "0 0 4%" }}>
                                 <Box>
-                                    <TextField id="room-link-input" value={roomLinkRef.current} aria-readonly />
-                                    <Button>Copy link</Button>
+                                    <InputLabel sx={{ padding: "2% 0" }} htmlFor="username-input">
+                                        Username
+                                    </InputLabel>
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        id="username-input"
+                                        placeholder="username"
+                                        value={username}
+                                    />
+                                </Box>
+                                <Box sx={{ mt: "2%" }}>
+                                    <InputLabel sx={{ padding: "2% 0" }} htmlFor="room-link-input">
+                                        Link
+                                    </InputLabel>
+                                    <Box>
+                                        <TextField
+                                            fullWidth
+                                            size="small"
+                                            id="room-link-input"
+                                            value={roomLinkRef.current}
+                                            aria-readonly
+                                            inputProps={{
+                                                "aria-readonly": true,
+                                            }}
+                                            sx={{
+                                                width: "73%",
+                                            }}
+                                        />
+                                        <IconButton
+                                            sx={{
+                                                marginLeft: "1%",
+                                                "&:hover, &.Mui-focusVisible": {
+                                                    borderRadius: "2%",
+                                                },
+                                            }}
+                                            onClick={() => {
+                                                if (shareLinkCopied) return;
+
+                                                window.navigator.clipboard.writeText(roomLinkRef.current ?? "");
+                                                const copiedLinkToastTimeout = 3_000;
+                                                toggleStateWithTimeout(
+                                                    true,
+                                                    setShareLinkCopied,
+                                                    copiedLinkToastTimeout
+                                                );
+                                            }}
+                                            aria-disabled={shareLinkCopied}
+                                        >
+                                            <Icon>{shareLinkCopied ? <DoneIcon /> : <ContentCopyIcon />}</Icon>
+                                            <Typography sx={{ px: "4px", fontSize: ".6em" }}>
+                                                {shareLinkCopied ? "Copied" : "Copy Link"}
+                                            </Typography>
+                                        </IconButton>
+                                    </Box>
                                 </Box>
                             </Box>
+
                             <Divider />
+
                             <Box>
                                 <Box>
-                                    <Typography>🔒 The session is end-to-end encrypted, and fully private.</Typography>
+                                    <Typography sx={{ py: "3%", fontSize: ".7em", color: "rgba(0, 0, 0, 0.54)" }}>
+                                        You have started a collaboration session and you can stop it anytime by clicking
+                                        Stop Session below. Stopping the session will disconnect you from the room, but
+                                        you'll be able to continue working with the scene, locally.
+                                    </Typography>
                                 </Box>
                                 <Button
                                     onClick={() => {
@@ -139,6 +196,8 @@ const ExcalidrawWrapper = () => {
                                             setCollabDialogOpen(false);
                                         });
                                     }}
+                                    sx={{ margin: "auto", display: "block", textTransform: "capitalize" }}
+                                    variant="outlined"
                                 >
                                     Stop Session
                                 </Button>
